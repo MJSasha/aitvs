@@ -98,7 +98,8 @@ int main(int argc, char *argv[]) {
 
 **Код:**
 
-```c#include <stdio.h>
+```c
+#include <stdio.h>
 #include <mpi.h>
 
 int main(int argc, char *argv[]) {
