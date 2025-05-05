@@ -220,3 +220,60 @@ int main(int argc, char *argv[]) {
 > В данном примере, если размер массива `N` не делится нацело на число процессов `numprocs`, то только `N - (N % numprocs)` элементов массива будут обработаны.  Последние `N % numprocs` элементов будут проигнорированы.
 >
 > Для корректной обработки случая, когда `N` не делится на `numprocs`, можно использовать функции `MPI_Scatterv` и `MPI_Gatherv`, которые позволяют задавать разное количество элементов для каждого процесса.
+
+### Пример 4. Пересылка данных между двумя процессами (MPI_Send и MPI_Recv)
+
+**Описание:**
+
+Демонстрируется простая точечная передача данных от одного процесса к другому. В данном примере должны работать ровно два процесса. Процесс с рангом 0 отправляет целое число процессу с рангом 1, а тот его принимает и выводит на экран.
+
+**Код:**
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <mpi.h>
+
+int main(int argc, char *argv[]) {
+    int rank, numprocs;
+    int data;
+    MPI_Status status;
+
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
+
+    if (numprocs != 2) {
+        if (rank == 0) {
+            printf("This example is intended to be run with exactly two processes.\n");
+        }
+        MPI_Finalize();
+        return 1;
+    }
+
+    if (rank == 0) {
+        data = 12345;
+        printf("Process 0 sends data %d to process 1.\n", data);
+        MPI_Send(&data, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
+    } else if (rank == 1) {
+        MPI_Recv(&data, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+        printf("Process 1 received data %d from process 0.\n", data);
+    }
+
+    MPI_Finalize();
+    return 0;
+}
+```
+
+**Примечания:**
+
+- Перед запуском убедитесь, что число процессов `numprocs` равно 2:  
+  ```bash
+  mpiexec -n 2 lab4.exe
+  ```
+- Если запустить с количеством процессов, отличным от 2, программа выведет предупреждение и завершится.
+
+**Результат**
+
+![Пример 4.1](./img/lab4.1.png)
+![Пример 4.2](./img/lab4.2.png)
