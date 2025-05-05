@@ -4,43 +4,54 @@
 
 int main(int argc, char *argv[]) {
     int rank, numprocs;
-    int N = 1000000; // длина массива
+    int N = 10;  // маленький массив
     double *A = NULL;
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
 
-    // Выделяем память для массива (лишь у процесса 0, далее данные рассылаются)
+    // Проверим, что N кратно numprocs (иначе мы сейчас не обработаем этот случай)
+    if (rank == 0) {
+        if (N % numprocs != 0) {
+            printf("Warning! N = %d is not divisible by numprocs = %d\n", N, numprocs);
+            printf("This example code expects N %% numprocs == 0\n");
+        }
+    }
+
+    int chunk = N / numprocs;  // размер блока для каждого процесса
+
     if (rank == 0) {
         A = (double *)malloc(N * sizeof(double));
-        for (int i = 0; i < N; i++) {
+        for(int i = 0; i < N; i++) {
             A[i] = i;
         }
     }
 
-    // Определяем размеры блоков для каждого процесса
-    int chunk = N / numprocs;
     double *local_A = (double *)malloc(chunk * sizeof(double));
 
-    // Рассылка блока данных каждому процессу (используем MPI_Scatter)
+    // Рассилка блоков
     MPI_Scatter(A, chunk, MPI_DOUBLE, local_A, chunk, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    // Каждый процесс преобразует свой блок: умножает элементы на 10
-    for (int i = 0; i < chunk; i++) {
-        local_A[i] = local_A[i] * 10.0;
+    // Обработка локального блока
+    for(int i = 0; i < chunk; i++) {
+        local_A[i] *= 10.0;
     }
 
-    // Сбор обработанных блоков в исходный массив на процессе 0 (MPI_Gather)
+    // Сбор обратно
     MPI_Gather(local_A, chunk, MPI_DOUBLE, A, chunk, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    // Процесс 0 может проверить результат
+    // Процесс 0 печатает весь массив
     if (rank == 0) {
-        printf("After multiplication A[0] = %f, A[N-1] = %f\n", A[0], A[N-1]);
+        printf("Modified array A after multiplication by 10:\n");
+        for (int i = 0; i < N; i++) {
+            printf("%f ", A[i]);
+        }
+        printf("\n");
         free(A);
     }
-    free(local_A);
 
+    free(local_A);
     MPI_Finalize();
     return 0;
 }

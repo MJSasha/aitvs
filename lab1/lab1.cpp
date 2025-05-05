@@ -2,35 +2,43 @@
 #include <stdlib.h>
 #include <mpi.h>
 
-#define ARRAY_SIZE 100000
+#define ARRAY_SIZE 5 // Short array size
 
 int main(int argc, char *argv[]) {
     int rank, numprocs;
-    double *array = NULL; // Pointer to the array that will be broadcast
+    int *array = NULL; // Changed to int for easier printing
 
     MPI_Init(&argc, &argv);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);   // Get the rank of the current process
-    MPI_Comm_size(MPI_COMM_WORLD, &numprocs); // Get the total number of processes
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
 
     /* The process with the highest rank creates the initial array */
     if (rank == numprocs - 1) {
-        array = (double *)malloc(ARRAY_SIZE * sizeof(double));
+        array = (int *)malloc(ARRAY_SIZE * sizeof(int));
         for (int i = 0; i < ARRAY_SIZE; i++) {
-            array[i] = (double)i * 0.5;  // Fill with arbitrary values
+            array[i] = rank * 10 + i; // Fill with rank-specific values
         }
-        printf("Process %d prepared the data array of size %d\n", rank, ARRAY_SIZE);
+        printf("Process %d prepared the data array: ", rank);
+        for(int i = 0; i < ARRAY_SIZE; i++) {
+            printf("%d ", array[i]);
+        }
+        printf("\n");
     } else {
         /* Other processes allocate memory to receive the array */
-        array = (double *)malloc(ARRAY_SIZE * sizeof(double));
+        array = (int *)malloc(ARRAY_SIZE * sizeof(int));
     }
 
     /* Broadcast the array: all processes receive a copy of the array.
        Use MPI_Bcast, called by all processes.
        The root process is the one with rank numprocs-1 */
-    MPI_Bcast(array, ARRAY_SIZE, MPI_DOUBLE, numprocs - 1, MPI_COMM_WORLD);
+    MPI_Bcast(array, ARRAY_SIZE, MPI_INT, numprocs - 1, MPI_COMM_WORLD); // Changed MPI_DOUBLE to MPI_INT
 
     /* Each process can check that the data was received correctly: */
-    printf("Process %d received array[0] = %f\n", rank, array[0]);
+    printf("Process %d received array: ", rank);
+    for(int i = 0; i < ARRAY_SIZE; i++) {
+        printf("%d ", array[i]);
+    }
+    printf("\n");
 
     free(array);
     MPI_Finalize();
